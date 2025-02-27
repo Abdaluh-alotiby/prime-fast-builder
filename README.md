@@ -16,7 +16,7 @@ A high-performance web application that **generates prime numbers infinitely** u
 
 ## **📸 Screenshot**  
 
-![Prime Generator UI](https://via.placeholder.com/600x300?text=Screenshot+Placeholder)  
+![Prime Generator UI](IMG_1070.jpeg)  
 
 ---
 
