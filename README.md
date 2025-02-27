@@ -44,7 +44,7 @@ A high-performance web application that **generates prime numbers infinitely** u
 
 1. Clone the repository:  
    ```sh
-   git clone https://github.com/your-username/prime-generator.git
+   git clone https://github.com/Abdaluh-alotiby/prime-fast-builder.git
    ```
 2. Open `index.html` in any modern browser.  
 
