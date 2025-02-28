@@ -28,27 +28,35 @@
     
     <div id="output" class="mt-4">
         <h4>Results:</h4>
-        <p><strong>Time Running:</strong> <span id="time">0</span> ms</p>
+        <p><strong>Time Running:</strong> <span id="time">0</span> s</p>
         <p><strong>Primes Found:</strong> <span id="count">0</span></p>
+        <p><strong>Rate:</strong> <span id="rate">0</span> primes/sec</p>
         <div id="primes" class="border p-2"></div>
     </div>
 
     <script>
         let worker;
-        let startTime;
+        let startTime = null;
         let timerInterval;
         let primeList = [];
+        let totalCount = 0; 
+        let lastNumber = 2;
+        let lastCount = 0;
 
         function startWorker() {
-            if (worker) return;
-            startTime = performance.now();
+            if (worker) return; 
+
+            if (!startTime) {
+                startTime = performance.now(); 
+            }
+
             document.getElementById("output").style.display = "block";
 
             worker = new Worker(URL.createObjectURL(new Blob([`
                 importScripts('https://cdnjs.cloudflare.com/ajax/libs/big-integer/1.6.51/BigInteger.min.js');
 
                 let primes = [];
-                let nextNumber = bigInt(2);
+                let nextNumber = bigInt(${lastNumber}); 
 
                 function isPrime(n) {
                     if (n.lesserOrEquals(1)) return false;
@@ -67,7 +75,7 @@
                     while (true) {
                         if (isPrime(nextNumber)) {
                             primes.push(nextNumber.toString());
-                            postMessage({ primes, count: primes.length });
+                            postMessage({ newPrime: nextNumber.toString() });
                         }
                         nextNumber = nextNumber.add(1);
                     }
@@ -77,14 +85,24 @@
             `], { type: "application/javascript" })));
 
             worker.onmessage = function (event) {
-                primeList = event.data.primes;
-                document.getElementById("count").textContent = event.data.count;
+                let newPrime = event.data.newPrime;
+                primeList.push(newPrime);
+                totalCount++;
+                lastNumber = newPrime;
+
+                document.getElementById("count").textContent = totalCount;
                 document.getElementById("primes").innerHTML = primeList.slice(-100).join(", ") + "...";
             };
 
+            lastCount = totalCount;
             timerInterval = setInterval(() => {
-                document.getElementById("time").textContent = (performance.now() - startTime).toFixed(2);
-            }, 50);
+                let elapsedTime = (performance.now() - startTime) / 1000;
+                document.getElementById("time").textContent = elapsedTime.toFixed(2);
+
+                let rate = Math.max(0, totalCount - lastCount);
+                lastCount = totalCount;
+                document.getElementById("rate").textContent = rate;
+            }, 1000);
         }
 
         function stopWorker() {
@@ -97,10 +115,15 @@
 
         function restartWorker() {
             stopWorker();
+            startTime = null;
+            lastNumber = 2;
+            totalCount = 0;
             document.getElementById("time").textContent = "0";
             document.getElementById("count").textContent = "0";
+            document.getElementById("rate").textContent = "0";
             document.getElementById("primes").innerHTML = "";
             primeList = [];
+            lastCount = 0;
             startWorker();
         }
 
@@ -116,9 +139,19 @@
             doc.setFontSize(12);
 
             doc.text("Generated Prime Numbers:", 10, 10);
+
             let text = primeList.join(", ");
             let splitText = doc.splitTextToSize(text, 180);
-            doc.text(splitText, 10, 20);
+            
+            let y = 20;
+            for (let i = 0; i < splitText.length; i++) {
+                if (y > 270) { // إذا تجاوزنا نهاية الصفحة
+                    doc.addPage();
+                    y = 10; // إعادة ضبط الموضع في الصفحة الجديدة
+                }
+                doc.text(splitText[i], 10, y);
+                y += 7; // زيادة المسافة بين الأسطر
+            }
 
             let pdfBlob = doc.output("blob");
             let file = new File([pdfBlob], "primes.pdf", { type: "application/pdf" });
